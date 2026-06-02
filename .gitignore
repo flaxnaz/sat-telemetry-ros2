@@ -4,3 +4,4 @@ log/
 *.pyc
 __pycache__/
 sat_session/
+sat_session/
