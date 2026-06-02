@@ -1,0 +1,7 @@
+fault_detector:
+  ros__parameters:
+    battery_warning: 93.0
+    battery_critical: 88.0
+    temp_max: 30.0
+    temp_min: 10.0
+    altitude_min: 400.0

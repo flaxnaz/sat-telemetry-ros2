@@ -13,9 +13,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 ament_export_dependencies(rosidl_default_runtime)
 
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
 add_executable(sat_publisher src/sat_publisher.cpp)
 ament_target_dependencies(sat_publisher rclcpp std_msgs)
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(sat_publisher ${cpp_typesupport_target})
 
 add_executable(sat_subscriber src/sat_subscriber.cpp)
@@ -29,7 +30,7 @@ target_link_libraries(fault_detector ${cpp_typesupport_target})
 install(TARGETS sat_publisher sat_subscriber fault_detector
   DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY launch
+install(DIRECTORY launch params
   DESTINATION share/${PROJECT_NAME})
 
 ament_package()
