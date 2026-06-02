@@ -1,27 +1,46 @@
 # sat-telemetry-ros2
 
-ROS2 Humble (C++) publisher/subscriber nodes for simulated satellite telemetry.
+A multi-node ROS2 Humble (C++17) satellite telemetry pipeline with custom message types, real-time fault detection, and a single-command launch file.
 
-## Overview
-A ROS2 package demonstrating real-time telemetry streaming between spacecraft subsystem nodes over a named topic. Built as part of a C++/ROS2 skill development sprint targeting flight software roles.
+Built as part of a C++/ROS2 skill sprint targeting flight software roles in the Australian space sector.
+
+## Architecture
+
+    sat_publisher -> /sat_telemetry (SatState) -> sat_subscriber
+                                               -> fault_detector -> /sat_faults (FaultAlert)
 
 ## Nodes
-- **sat_publisher** — publishes simulated satellite state (sequence, altitude, battery, temperature) at 1Hz
-- **sat_subscriber** — subscribes to `/sat_telemetry` and logs each message with a counter
 
-## Build & Run
-```bash
-source /opt/ros/humble/setup.bash
-colcon build --packages-select sat_telemetry
-source install/setup.bash
+| Node | Topic | Role |
+|---|---|---|
+| sat_publisher | /sat_telemetry | Publishes SatState at 1 Hz with sinusoidal altitude and battery drain |
+| sat_subscriber | /sat_telemetry | Subscribes and logs every typed packet with counter |
+| fault_detector | /sat_faults | Monitors thresholds, raises severity-graded FaultAlert messages |
 
-# Terminal 1
-ros2 run sat_telemetry sat_publisher
+## Custom Messages
 
-# Terminal 2
-ros2 run sat_telemetry sat_subscriber
-```
+SatState.msg: sequence, altitude_km, battery_pct, temperature_c, mission_phase
+
+FaultAlert.msg: sequence, fault_type, description, value, threshold, severity
+
+## Fault Thresholds
+
+| Parameter | Warning | Critical |
+|---|---|---|
+| Battery | < 90% severity 1 | < 85% severity 2 |
+| Temperature | < 10C severity 2 | > 30C severity 3 |
+| Altitude | < 400km severity 3 | - |
+
+## Build and Run
+
+    source /opt/ros/humble/setup.bash
+    cd ~/ros2_ws
+    colcon build --packages-select sat_telemetry
+    source install/setup.bash
+    ros2 launch sat_telemetry sat_telemetry.launch.py
 
 ## Environment
-- ROS2 Humble | Ubuntu 22.04 | C++17
-- Related: [sat-telemetry-logger](https://github.com/flaxnaz/sat-telemetry-logger) (Python pipeline)
+
+- ROS2 Humble | Ubuntu 22.04 WSL2 | C++17 | CMake
+- Related: sat-telemetry-logger https://github.com/flaxnaz/sat-telemetry-logger
+- Related: nrho-visibility https://github.com/flaxnaz/nrho-visibility
