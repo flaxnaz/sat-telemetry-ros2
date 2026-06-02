@@ -1,31 +1,33 @@
 #include <chrono>
 #include <memory>
-#include <string>
+#include <cmath>
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "sat_telemetry/msg/sat_state.hpp"
 
 using namespace std::chrono_literals;
 
 class SatTelemetryPublisher : public rclcpp::Node
 {
 public:
-  SatTelemetryPublisher() : Node("sat_telemetry_publisher"), count_(0)
+  SatTelemetryPublisher() : Node("sat_publisher"), seq_(0)
   {
-    publisher_ = this->create_publisher<std_msgs::msg::String>("sat_telemetry", 10);
-    timer_ = this->create_wall_timer(
-      1000ms, [this]() {
-        auto msg = std_msgs::msg::String();
-        msg.data = "SEQ:" + std::to_string(count_++) +
-                   " ALT:408.2km BAT:94.3% TEMP:22.1C";
-        RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", msg.data.c_str());
-        publisher_->publish(msg);
-      });
+    publisher_ = this->create_publisher<sat_telemetry::msg::SatState>("sat_telemetry", 10);
+    timer_ = this->create_wall_timer(1000ms, [this]() {
+      auto msg = sat_telemetry::msg::SatState();
+      msg.sequence      = seq_++;
+      msg.altitude_km   = 408.2 + 0.5 * std::sin(seq_ * 0.1);
+      msg.battery_pct   = 94.3f - seq_ * 0.2f;
+      msg.temperature_c = 22.1f + 0.3f * std::sin(seq_ * 0.2f);
+      msg.mission_phase = seq_ < 30 ? "nominal" : (seq_ < 60 ? "eclipse" : "nominal");
+      RCLCPP_INFO(this->get_logger(), "[SEQ:%u] ALT:%.2fkm BAT:%.1f%% TEMP:%.1fC PHASE:%s",
+        msg.sequence, msg.altitude_km, msg.battery_pct, msg.temperature_c, msg.mission_phase.c_str());
+      publisher_->publish(msg);
+    });
   }
-
 private:
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+  rclcpp::Publisher<sat_telemetry::msg::SatState>::SharedPtr publisher_;
   rclcpp::TimerBase::SharedPtr timer_;
-  size_t count_;
+  uint32_t seq_;
 };
 
 int main(int argc, char * argv[])

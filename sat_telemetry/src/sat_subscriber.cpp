@@ -1,25 +1,25 @@
 #include <memory>
-#include <string>
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "sat_telemetry/msg/sat_state.hpp"
 
 class SatTelemetrySubscriber : public rclcpp::Node
 {
 public:
-  SatTelemetrySubscriber() : Node("sat_telemetry_subscriber"), msg_count_(0)
+  SatTelemetrySubscriber() : Node("sat_subscriber"), msg_count_(0)
   {
-    subscription_ = this->create_subscription<std_msgs::msg::String>(
+    subscription_ = this->create_subscription<sat_telemetry::msg::SatState>(
       "sat_telemetry", 10,
-      [this](const std_msgs::msg::String::SharedPtr msg) {
+      [this](const sat_telemetry::msg::SatState::SharedPtr msg) {
         msg_count_++;
-        RCLCPP_INFO(this->get_logger(), "[%zu] Received: '%s'",
-                    msg_count_, msg->data.c_str());
+        RCLCPP_INFO(this->get_logger(),
+          "[%zu] SEQ:%u ALT:%.2fkm BAT:%.1f%% TEMP:%.1fC PHASE:%s",
+          msg_count_, msg->sequence, msg->altitude_km,
+          msg->battery_pct, msg->temperature_c, msg->mission_phase.c_str());
       });
     RCLCPP_INFO(this->get_logger(), "Listening on /sat_telemetry...");
   }
-
 private:
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr subscription_;
+  rclcpp::Subscription<sat_telemetry::msg::SatState>::SharedPtr subscription_;
   size_t msg_count_;
 };
 

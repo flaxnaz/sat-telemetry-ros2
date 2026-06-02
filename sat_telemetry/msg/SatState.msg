@@ -1,0 +1,5 @@
+uint32 sequence
+float64 altitude_km
+float32 battery_pct
+float32 temperature_c
+string mission_phase
