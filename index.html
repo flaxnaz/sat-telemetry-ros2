@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sat-telemetry-ros2 — Live Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f9fa;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --text-primary: #1a1a2e;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --blue: #185FA5;
+    --blue-light: #E6F1FB;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --amber: #BA7517;
+    --amber-light: #FAEEDA;
+    --red: #A32D2D;
+    --red-light: #FCEBEB;
+    --green: #3B6D11;
+    --green-light: #EAF3DE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: rgba(255,255,255,0.08);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --blue: #85B7EB;
+      --blue-light: #042C53;
+      --teal: #5DCAA5;
+      --teal-light: #04342C;
+      --amber: #FAC775;
+      --amber-light: #412402;
+      --red: #F09595;
+      --red-light: #501313;
+      --green: #97C459;
+      --green-light: #173404;
+    }
+  }
+  body { background: var(--bg); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  .header-left h1 { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+  .header-left p { font-size: 13px; color: var(--text-secondary); margin-top: 2px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-live { background: var(--teal-light); color: var(--teal); }
+  .badge-ros2 { background: var(--blue-light); color: var(--blue); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); animation: pulse 1.4s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+  .gh-link { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--blue); text-decoration: none; border: 1px solid var(--border); padding: 4px 12px; border-radius: 6px; }
+  .gh-link:hover { background: var(--blue-light); }
+
+  .main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 2rem; }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.25rem; }
+  .metric { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+  .metric-label { font-size: 12px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .metric-value { font-size: 26px; font-weight: 600; color: var(--text-primary); line-height: 1; }
+  .metric-unit { font-size: 13px; font-weight: 400; color: var(--text-secondary); margin-left: 3px; }
+  .metric-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+  @media (max-width: 640px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+  .chart-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .bottom-row { grid-template-columns: 1fr; } }
+
+  .log-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+  .log-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .log-body { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11.5px; }
+  .log-row { padding: 4px 0; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .log-row:last-child { border-bottom: none; }
+  .log-row .seq { color: var(--blue); font-weight: 600; }
+  .log-row .ok { color: var(--teal); }
+  .log-row .warn { color: var(--amber); }
+
+  .fault-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+  .fault-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .fault-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .fault-row:last-child { border-bottom: none; }
+  .sev-badge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; white-space: nowrap; }
+  .sev-1 { background: var(--amber-light); color: var(--amber); }
+  .sev-2 { background: var(--red-light); color: var(--red); }
+  .sev-3 { background: #FCEBEB; color: #A32D2D; }
+  .fault-type { font-weight: 500; color: var(--text-primary); flex: 1; }
+  .fault-val { color: var(--text-muted); font-family: monospace; font-size: 11px; }
+
+  .arch-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.25rem; }
+  .arch-title { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 12px; }
+  .arch-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .arch-node { background: var(--blue-light); color: var(--blue); border: 1px solid var(--border); border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; font-family: monospace; white-space: nowrap; }
+  .arch-node.teal { background: var(--teal-light); color: var(--teal); }
+  .arch-node.red { background: var(--red-light); color: var(--red); }
+  .arch-topic { background: var(--bg); border: 1px dashed var(--border); border-radius: 6px; padding: 3px 10px; font-size: 11px; color: var(--text-muted); font-family: monospace; }
+  .arch-arrow { color: var(--text-muted); font-size: 14px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 12px; }
+  .stat-item { background: var(--bg); border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .stat-val { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+  .stat-label { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+  footer { text-align: center; padding: 1.5rem; font-size: 12px; color: var(--text-muted); border-top: 1px solid var(--border); margin-top: 1rem; }
+  footer a { color: var(--blue); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1><i class="ti ti-satellite" aria-hidden="true" style="margin-right:6px"></i>sat-telemetry-ros2</h1>
+    <p>Multi-node ROS2 Humble (C++17) satellite telemetry pipeline</p>
+  </div>
+  <div class="header-right">
+    <span class="badge badge-live"><span class="dot"></span>Live simulation · 1 Hz</span>
+    <span class="badge badge-ros2"><i class="ti ti-cpu" aria-hidden="true"></i>ROS2 Humble</span>
+    <a class="gh-link" href="https://github.com/flaxnaz/sat-telemetry-ros2" target="_blank"><i class="ti ti-brand-github" aria-hidden="true"></i>GitHub</a>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-hash" aria-hidden="true"></i>Sequence</div>
+      <div class="metric-value" id="m-seq">0<span class="metric-unit">#</span></div>
+      <div class="metric-sub">Messages published</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-planet" aria-hidden="true"></i>Altitude</div>
+      <div class="metric-value" id="m-alt">408.2<span class="metric-unit">km</span></div>
+      <div class="metric-sub">LEO orbit</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-battery-2" aria-hidden="true"></i>Battery</div>
+      <div class="metric-value" id="m-bat">94.3<span class="metric-unit">%</span></div>
+      <div class="metric-sub" id="m-bat-status">Nominal</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-temperature" aria-hidden="true"></i>Temperature</div>
+      <div class="metric-value" id="m-temp">22.1<span class="metric-unit">°C</span></div>
+      <div class="metric-sub" id="m-temp-status">Nominal</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label"><i class="ti ti-activity" aria-hidden="true"></i>Mission phase</div>
+      <div class="metric-value" id="m-phase" style="font-size:18px;padding-top:4px">Nominal</div>
+      <div class="metric-sub" id="m-faults">0 faults raised</div>
+    </div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title"><i class="ti ti-battery" aria-hidden="true"></i>Battery % over time</div>
+      <div style="position:relative;height:160px"><canvas id="batChart" role="img" aria-label="Line chart of battery percentage over time">Battery percentage readings over recent telemetry packets.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><i class="ti ti-thermometer" aria-hidden="true"></i>Temperature °C over time</div>
+      <div style="position:relative;height:160px"><canvas id="tempChart" role="img" aria-label="Line chart of temperature over time">Temperature readings over recent telemetry packets.</canvas></div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="log-card">
+      <div class="log-title"><i class="ti ti-terminal" aria-hidden="true"></i>/sat_telemetry — subscriber log</div>
+      <div class="log-body" id="log"></div>
+    </div>
+    <div class="fault-card">
+      <div class="fault-title"><i class="ti ti-alert-triangle" aria-hidden="true"></i>/sat_faults — fault detector</div>
+      <div id="fault-log"></div>
+    </div>
+  </div>
+
+  <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div class="arch-card">
+      <div class="arch-title"><i class="ti ti-topology-star" aria-hidden="true" style="margin-right:4px"></i>Node architecture</div>
+      <div class="arch-flow">
+        <div class="arch-node">sat_publisher</div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-topic">/sat_telemetry</div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-node teal">sat_subscriber</div>
+      </div>
+      <div class="arch-flow" style="margin-top:8px;padding-left:140px">
+        <span class="arch-arrow">↓</span>
+        <div class="arch-node red">fault_detector</div>
+        <span class="arch-arrow">→</span>
+        <div class="arch-topic">/sat_faults</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-item"><div class="stat-val">3</div><div class="stat-label">Nodes</div></div>
+        <div class="stat-item"><div class="stat-val">2</div><div class="stat-label">Topics</div></div>
+        <div class="stat-item"><div class="stat-val">1 Hz</div><div class="stat-label">Pub rate</div></div>
+      </div>
+    </div>
+    <div class="arch-card">
+      <div class="arch-title"><i class="ti ti-file-code" aria-hidden="true" style="margin-right:4px"></i>Custom message types</div>
+      <div style="font-family:monospace;font-size:12px;color:var(--text-secondary);line-height:1.8">
+        <div style="color:var(--blue);font-weight:600;margin-bottom:4px">SatState.msg</div>
+        <div>uint32 sequence</div>
+        <div>float64 altitude_km</div>
+        <div>float32 battery_pct</div>
+        <div>float32 temperature_c</div>
+        <div>string mission_phase</div>
+        <div style="color:var(--red);font-weight:600;margin:10px 0 4px">FaultAlert.msg</div>
+        <div>string fault_type</div>
+        <div>float32 value / threshold</div>
+        <div>uint8 severity</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Built by <a href="https://github.com/flaxnaz" target="_blank">Flaxon Nazareth</a> &nbsp;·&nbsp;
+  <a href="https://github.com/flaxnaz/sat-telemetry-ros2" target="_blank">github.com/flaxnaz/sat-telemetry-ros2</a> &nbsp;·&nbsp;
+  ROS2 Humble · C++17 · Ubuntu 22.04
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const MAX = 30;
+let seq = 0, faultCount = 0;
+let batData = [], tempData = [], labels = [];
+
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const BLUE = isDark ? '#85B7EB' : '#185FA5';
+const TEAL = isDark ? '#5DCAA5' : '#0F6E56';
+const BLUE_BG = isDark ? 'rgba(133,183,235,0.12)' : 'rgba(24,95,165,0.08)';
+const TEAL_BG = isDark ? 'rgba(93,202,165,0.12)' : 'rgba(15,110,86,0.08)';
+
+const batChart = new Chart(document.getElementById('batChart'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Battery %', data: [], borderColor: BLUE, backgroundColor: BLUE_BG, borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: true }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    scales: { y: { min: 78, max: 96, ticks: { font: { size: 10 }, color: isDark ? '#64748b' : '#94a3b8' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
+              x: { ticks: { display: false }, grid: { display: false } } } }
+});
+
+const tempChart = new Chart(document.getElementById('tempChart'), {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Temp °C', data: [], borderColor: TEAL, backgroundColor: TEAL_BG, borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: true }] },
+  options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    scales: { y: { min: 18, max: 26, ticks: { font: { size: 10 }, color: isDark ? '#64748b' : '#94a3b8' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
+              x: { ticks: { display: false }, grid: { display: false } } } }
+});
+
+function addLog(html) {
+  const log = document.getElementById('log');
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  row.innerHTML = html;
+  log.insertBefore(row, log.firstChild);
+  while (log.children.length > 7) log.removeChild(log.lastChild);
+}
+
+function addFault(type, val, thresh, sev) {
+  faultCount++;
+  const fl = document.getElementById('fault-log');
+  const row = document.createElement('div');
+  row.className = 'fault-row';
+  row.innerHTML = `<span class="sev-badge sev-${sev}">SEV ${sev}</span><span class="fault-type">${type}</span><span class="fault-val">${val.toFixed(1)} / ${thresh}</span>`;
+  fl.insertBefore(row, fl.firstChild);
+  while (fl.children.length > 7) fl.removeChild(fl.lastChild);
+  document.getElementById('m-faults').textContent = faultCount + ' fault' + (faultCount !== 1 ? 's' : '') + ' raised';
+}
+
+function tick() {
+  const bat = parseFloat((94.3 - seq * 0.18 + (Math.random() - 0.5) * 0.3).toFixed(1));
+  const alt = parseFloat((408.2 + 0.5 * Math.sin(seq * 0.1)).toFixed(2));
+  const temp = parseFloat((22.1 + 0.3 * Math.sin(seq * 0.2) + (Math.random() - 0.5) * 0.2).toFixed(1));
+  const phase = seq < 30 ? 'Nominal' : seq < 60 ? 'Eclipse' : 'Nominal';
+
+  document.getElementById('m-seq').innerHTML = seq + '<span class="metric-unit">#</span>';
+  document.getElementById('m-alt').innerHTML = alt.toFixed(2) + '<span class="metric-unit">km</span>';
+  document.getElementById('m-bat').innerHTML = bat.toFixed(1) + '<span class="metric-unit">%</span>';
+  document.getElementById('m-temp').innerHTML = temp.toFixed(1) + '<span class="metric-unit">°C</span>';
+  document.getElementById('m-phase').textContent = phase;
+
+  const batStatus = document.getElementById('m-bat-status');
+  if (bat < 85) { batStatus.textContent = '⚠ Critical'; batStatus.style.color = 'var(--red)'; }
+  else if (bat < 90) { batStatus.textContent = '⚠ Warning'; batStatus.style.color = 'var(--amber)'; }
+  else { batStatus.textContent = 'Nominal'; batStatus.style.color = 'var(--teal)'; }
+
+  if (batData.length >= MAX) { batData.shift(); tempData.shift(); labels.shift(); }
+  batData.push(bat); tempData.push(temp); labels.push(seq);
+  batChart.data.labels = [...labels]; batChart.data.datasets[0].data = [...batData]; batChart.update('none');
+  tempChart.data.labels = [...labels]; tempChart.data.datasets[0].data = [...tempData]; tempChart.update('none');
+
+  const status = bat < 85 ? '<span class="warn">⚠ FAULT</span>' : '<span class="ok">✓</span>';
+  addLog(`[<span class="seq">${seq}</span>] ALT:${alt.toFixed(1)}km BAT:${bat.toFixed(1)}% TEMP:${temp.toFixed(1)}C ${status}`);
+
+  if (bat < 85) addFault('LOW_BATTERY', bat, '85.0%', 2);
+  else if (bat < 90) addFault('BATTERY_WARNING', bat, '90.0%', 1);
+
+  seq++;
+}
+
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>
