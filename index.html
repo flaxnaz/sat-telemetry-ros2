@@ -243,7 +243,7 @@ const batChart = new Chart(document.getElementById('batChart'), {
   type: 'line',
   data: { labels: [], datasets: [{ label: 'Battery %', data: [], borderColor: BLUE, backgroundColor: BLUE_BG, borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: true }] },
   options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-    scales: { y: { min: 78, max: 96, ticks: { font: { size: 10 }, color: isDark ? '#64748b' : '#94a3b8' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
+    scales: { y: { ticks: { font: { size: 10 }, color: isDark ? '#64748b' : '#94a3b8' }, grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } },
               x: { ticks: { display: false }, grid: { display: false } } } }
 });
 
