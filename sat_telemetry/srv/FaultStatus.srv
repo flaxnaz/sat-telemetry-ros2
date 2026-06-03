@@ -1,0 +1,9 @@
+# Request (empty — no input needed)
+---
+# Response
+uint32 total_faults
+uint32 battery_faults
+uint32 temperature_faults
+uint32 altitude_faults
+float32 last_battery_value
+string status
