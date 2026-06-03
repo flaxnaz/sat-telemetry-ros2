@@ -4,6 +4,12 @@ A multi-node ROS2 Humble (C++17) satellite telemetry pipeline with custom messag
 
 Built as part of a C++/ROS2 skill sprint targeting flight software roles in the Australian space sector.
 
+## Live Dashboard
+
+https://flaxnaz.github.io/sat-telemetry-ros2
+
+Interactive simulation of the telemetry pipeline — metrics, charts, subscriber log, and fault alerts updating at 1 Hz.
+
 ## Architecture
 
     sat_publisher -> /sat_telemetry (SatState) -> sat_subscriber
