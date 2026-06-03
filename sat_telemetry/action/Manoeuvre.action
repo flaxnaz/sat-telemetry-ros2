@@ -1,0 +1,14 @@
+# Goal — what the operator requests
+float32 delta_v_ms        # target delta-V in m/s
+string manoeuvre_type     # e.g. "apogee_raise", "plane_change"
+---
+# Result — returned when complete
+bool success
+float32 actual_delta_v_ms
+string message
+---
+# Feedback — sent during execution
+float32 delta_v_remaining_ms
+float32 thrust_pct
+float32 elapsed_seconds
+string phase
